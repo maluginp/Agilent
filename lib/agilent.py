@@ -41,14 +41,31 @@ VOLTAGE_LIMITS = dict(
 
 from visa import *
 
-try:
-    get_instruments_list()
-except:
-    print "No devices found"
-    sys.exit()
+#try:
+#    get_instruments_list()
+#except:
+#    print "No devices found"
+#    sys.exit()
 
-agilent = instrument("USBInstrument1")
+agilent = 0
 
+def agilent_init(name):
+    global agilent
+    try:
+        ints = get_instruments_list()
+    except:
+        print "Not running devices"
+        return False
+    else:
+        if name in ints:
+            agilent = instrument(name)
+            #print "Device initialized"
+            return True
+        else:
+            print "Name ['%s'] don't found in a running device" % (name)
+            print "Devices agilent:"
+            print ints
+            return False
 
 def next_range(current_range,mode):
     
@@ -197,7 +214,7 @@ def initialize(channel,mode,rang="",limit=0.0):
 
 
 def stop_output(channel="all"):
-
+    global agilent
     if channel == "all":
         for ch in xrange(1,MAX_CHANNEL+1):
             stop_output(ch) 
