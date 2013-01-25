@@ -9,6 +9,7 @@
 
 import sys
 import time
+import numpy
 
 # CHANNEL 1 - Ube, Ib
 # CHANNEL 2 - Uce, Ic
@@ -277,9 +278,9 @@ def source(channel,mode,value):
 
     else:
         print "source() error mode"
-        print channel
-        print mode
-        print value
+        print "> debug information:"
+        print ">> CH:%d, Mode:%s, Value:%.2e" % (channel,mode,value)
+        print "terminated..."
         sys.exit(1)        
 
 
@@ -300,6 +301,9 @@ def source_value(channel,mode):
 
     else:
         print "source_value() error mode"
+        print "> debug information:"
+        print ">> CH:%d, Mode:%s" % (channel,mode)
+        print "terminated..."
         sys.exit(1)
 
 
@@ -317,31 +321,41 @@ def measure(channel,mode):
             value = float(agilent.ask("MEAS:VOLT? (@"+str(channel)+")"))
     else:
         print "measure() error"
+        print "> debug information:"
+        print ">> CH:%d, Mode:%s" % (channel,mode)
+        print "terminated..."
         sys.exit(1)
                 
     return value
     
-def drange(start, stop, step,round_digits=2):
+def drange(start, stop, step):
 
-    if round_digits > 0:
-        stop  = round(stop,round_digits)
-        start = round(start,round_digits)
-        step  = round(step,round_digits)
+    range = numpy.arange( start, stop, step )
+
+    #if range[-1] != stop:
+    #    range.append(stop)
+
+    return range
+
+    # if round_digits > 0:
+    #     stop  = round(stop,round_digits)
+    #     start = round(start,round_digits)
+    #     step  = round(step,round_digits)
     
-    r = start
-    range = [r]
+    # r = start
+    # range = [r]
 
-    if start > stop:
-        step = - step
+    # if start > stop:
+    #     step = - step
 
-    while abs(r) < abs(stop):
-        r  += step
-        if round_digits == -1:
-            range += [r]
-        else:
-            range += [round(r,round_digits)]
+    # while abs(r) < abs(stop):
+    #     r  += step
+    #     if round_digits == -1:
+    #         range += [r]
+    #     else:
+    #         range += [round(r,round_digits)]
         
-    return range    
+    # return range    
         
 def state_output(channel="all"):
 
