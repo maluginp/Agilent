@@ -75,6 +75,7 @@ read_cfg = config.read(cfg_file)
 # Проверка считывания конфигурационного файла
 if len(read_cfg) != 1:
     print "Can't read config_file: %s" % (cfg_file)
+    sys.exit(0)
 
 # Section: Agilent
 agilent_name = config.get('Agilent','name')

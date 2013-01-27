@@ -10,6 +10,7 @@
 import sys
 import time
 import numpy
+from copy import deepcopy
 
 # CHANNEL 1 - Ube, Ib
 # CHANNEL 2 - Uce, Ic
@@ -60,6 +61,12 @@ def agilent_init(name):
     else:
         if name in ints:
             agilent = instrument(name)
+            # def initialize(channel,mode,rang="",limit=0.0):
+            for ch in xrange(1,MAX_CHANNEL+1):
+                initialize(ch,'v','R2V')
+                initialize(ch,'c','R1uA')
+
+
             #print "Device initialized"
             return True
         else:
@@ -136,7 +143,8 @@ def get_range(channel,mode):
 def set_range(channel,mode,rang):
     channel = int(channel)
     
-    # stop_output(channel)
+    stop_output(channel)
+  
     if mode in ["c","cur","curr"]:
         if rang in CURRENT_RANGES:
             initialize(channel,mode,rang)
@@ -144,8 +152,8 @@ def set_range(channel,mode,rang):
         if rang in VOLTAGE_RANGES:
             initialize(channel,mode,rang)
             
-    start_output(channel)
-    time.sleep( 3 )
+    start_output( channel )
+    time.sleep( 0.5 )
 
 def up_range(channel,mode):   
     stop_output(channel)
@@ -171,16 +179,56 @@ def get_good_range(mode,value):
     value = abs(value)
     if mode in ["c","cur","curr"]:
         for cur_range in CURRENT_RANGES:
-            if value < (0.9*CURRENT_LIMITS[cur_range]):
+            if value < (0.95*CURRENT_LIMITS[cur_range]):
                 return cur_range  
                 
         return CURRENT_RANGES[len(CURRENT_RANGES)-1]
     elif mode in ["v","vol","volt"]:
         for volt_range in VOLTAGE_RANGES:
-            if value < (0.9*VOLTAGE_LIMITS[volt_range]):
+            if value < (0.95*VOLTAGE_LIMITS[volt_range]):
                 return volt_range  
         return VOLTAGE_RANGES[len(VOLTAGE_RANGES)-1]
+ 
+def set_good_range(channel,mode):
+    
+    prev_range = ''
+    count_jump = 0
+    while True:
+        current_range = get_range( channel, mode )       
         
+        start_output('all')
+        time.sleep(0.5)
+
+        if not is_output(channel):
+            stop_output('all')
+            return False
+
+        value = measure( channel, mode )      
+        stop_output('all')
+
+        good_range = get_good_range( mode, value )
+
+        if current_range == good_range:
+            return True
+
+        if get_range_num( prev_range, 'c' ) > get_range_num( good_range, 'c'):
+            print "@CH%d:Range Jumped:  Good:%s,Prev:%s" % (channel,good_range,prev_range)
+            if count_jump > 1:
+                set_range( channel, mode, prev_range )
+                print "Set"
+                return True
+            else:
+                count_jump += 1
+
+            
+        else:
+            print "@CH%d:Range updated: Good:%s,Prev:%s" % (channel,good_range,prev_range)
+            prev_range = good_range
+            set_range( channel, mode, good_range )
+            continue
+
+    return False
+
 #! Initialize
 def initialize(channel,mode,rang="",limit=0.0):
 
@@ -268,13 +316,23 @@ def cooler(temp):
 def source(channel,mode,value):
     channel = int(channel)
 
+    #state_source(channel)
+
+    good_range    = get_good_range(mode,value)
+    current_range = get_range( channel, mode )  
+
+    if good_range != current_range:
+        set_range( channel,mode, good_range )
+
     if mode in ["c","cur","curr"]:      
         if channel >= 1 and channel <= MAX_CHANNEL:
             agilent.write("CURR "+str(value)+",(@"+str(channel)+")")
 
     elif mode in ["v","vol","volt"]:
-        if channel >= 1 and channel <= MAX_CHANNEL:
+        if channel >= 1 and channel <= MAX_CHANNEL:       
             agilent.write("VOLT "+str(value)+",(@"+str(channel)+")")
+
+
 
     else:
         print "source() error mode"
@@ -328,34 +386,114 @@ def measure(channel,mode):
                 
     return value
     
+def measure_all():
+    _measures = {}
+    for ch in xrange(1,MAX_CHANNEL+1):
+        _measures['ch'+str(ch)] = {}
+        _measures['ch'+str(ch)]['volt'] = {}
+        _measures['ch'+str(ch)]['curr'] = {}
+        _measures['ch'+str(ch)]['volt']['meas'] = 0.0
+        _measures['ch'+str(ch)]['curr']['sour'] = 0.0
+
+
+
+    for ch in xrange(1,MAX_CHANNEL+1):
+        _measures['ch'+str(ch)]['curr']['meas'] = measure(ch,'c')
+        _measures['ch'+str(ch)]['curr']['sour'] = source_value(ch,'c')
+        _measures['ch'+str(ch)]['volt']['meas'] = measure(ch,'v')
+        _measures['ch'+str(ch)]['volt']['sour'] = source_value(ch,'v')
+        
+    _measures['temp'] = temperature()
+
+    return _measures
+
+
+def check_error(source,measure,error):
+    _source  = abs(source)
+    _measure = abs(measure)
+    _error   = abs(error)
+
+    if (_source + _error) >= _measure and (_source - _error) <= _measure:
+        return True
+
+    return False 
+
+def set_max_channel(max_ch):
+    global MAX_CHANNEL
+    if max_ch > 0 and max_ch <= 3:
+        MAX_CHANNEL = max_ch
+        return True
+    
+    return False
+
+
+
 def drange(start, stop, step):
 
-    range = numpy.arange( start, stop, step )
-
-    #if range[-1] != stop:
-    #    range.append(stop)
-
+    range = numpy.arange( start, stop + step, step )
     return range
+ 
 
-    # if round_digits > 0:
-    #     stop  = round(stop,round_digits)
-    #     start = round(start,round_digits)
-    #     step  = round(step,round_digits)
+def get_source_range(ranges):
+
+    src_range = []
+
+    _ranges = []
+
+    if len(ranges) < 0:
+        return []
+
+    if len(ranges.split('+')) != 1:
+        _ranges = ranges.split('+')
+    else:
+        _ranges = [ranges]
+
+    try:
+        for _range in _ranges:
+
+            if len(_range.split(',')) != 1:
+                # 1,2,3,4
+
+                __range = _range.split(',')
+                for ___range in __range:
+                    src_range += [ float(___range) ]
+
+            elif len(_range.split(';')) != 1:
+
+                # 1;2;0.1
+                __range       = _range.split(';')
+                
+                __range_start = float(__range[0])
+                __range_end   = float(__range[1])
+                __range_step  = float(__range[2])
+                
+                _cycle = __range_start
+                src_range += [_cycle]
+                while _cycle < __range_end:
+                    _cycle += __range_step
+                    src_range += [_cycle]
     
-    # r = start
-    # range = [r]
+            else:
+                # const
 
-    # if start > stop:
-    #     step = - step
+                src_range += [ float(_range) ]
 
-    # while abs(r) < abs(stop):
-    #     r  += step
-    #     if round_digits == -1:
-    #         range += [r]
-    #     else:
-    #         range += [round(r,round_digits)]
-        
-    # return range    
+    except ValueError:
+        print "ValueError"
+    except:
+        print "Fatal error"
+    else:
+        return src_range   
+
+    return []
+
+
+
+def is_output(channel):
+    ask = bool(agilent.ask("OUTP? (@"+str(channel)+")"))
+
+    return ask
+ # Debug
         
 def state_output(channel="all"):
 
