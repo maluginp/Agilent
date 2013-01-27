@@ -21,10 +21,7 @@ config = ConfigParser.ConfigParser()
 
 sys.path.append("../lib/")
 
-# TODO: move to config
-CHANNEL_UDS = 1
-CHANNEL_UGS = 2
-CHANNEL_UBS = 3
+
 
 import agilent as ag
 from graphics import *
@@ -139,6 +136,12 @@ MEASURE_MAX_FAILED = config.getint('Measure','max_failed')
 INCLUDE_GRAPHICS   = config.getboolean('Graphic','enable')
 INTERPOLATED       = config.getboolean('Graphic','spline')
 
+# TODO: move to config
+
+CHANNEL_UDS = config.getint( 'Agilent', 'channel_Uds' )
+CHANNEL_UGS = config.getint( 'Agilent', 'channel_Ugs' )
+CHANNEL_UBS = config.getint( 'Agilent', 'channel_Ubs' )
+
 
 # Количество 
 COUNT_CURRENT_SATURATION = 0
@@ -217,21 +220,10 @@ def execute():
 
     if not ag.set_good_range( CHANNEL_UDS, 'c' ):
         print "Can't set good range for channel UDS"
-    #print "Uds range(c): " + ag.get_range( CHANNEL_UDS, 'c' )
-    #print "Uds range(v): " + ag.get_range( CHANNEL_UDS, 'v' )
-
     if not ag.set_good_range( CHANNEL_UGS, 'c' ):
         print "Can't set good range for channel UGS"
-
-    #print "Ugs range(c): " + ag.get_range( CHANNEL_UGS, 'c' )
-    #print "Ugs range(v): " + ag.get_range( CHANNEL_UGS, 'v' )
-
     if not ag.set_good_range( CHANNEL_UBS, 'c' ):
         print "Can't set good range for channel UBS"
-
-    #print "Ubs range(c): " + ag.get_range( CHANNEL_UBS, 'c' )
-    #print "Ubs range(v): " + ag.get_range( CHANNEL_UBS, 'v' )
-
 
     if round(meas('Ids'),3) == 0.120:
         if COUNT_CURRENT_SATURATION > 1:
