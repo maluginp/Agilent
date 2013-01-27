@@ -525,9 +525,11 @@ def is_output(channel):
 
 def reset():
     agilent.write("*RST")
+    _dbg( "Execute reset", "reset()" )
 
 def clear():
     agilent.write("*CLS")
+    _dbg( "Execute clear", "clear()" )
 
 def self_test():
     test = agilent.ask("*TST?")
