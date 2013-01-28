@@ -12,7 +12,7 @@ import time
 import numpy
 from copy import deepcopy
 
-DEBUG_ENABLE = True
+DEBUG_ENABLE = False
 
 # CHANNEL 1 - Ube, Ib
 # CHANNEL 2 - Uce, Ic
@@ -225,7 +225,7 @@ def set_good_range(channel,mode):
             return True
 
         if get_range_num( prev_range, 'c' ) > get_range_num( good_range, 'c'):
-            _dbg( "Jump down to %s from %s, CH:%d"  % (good_range,prev_range,channel))    
+            _dbg( "Jump down to %s from %s, CH:%d"  % (good_range,prev_range,channel),"set_good_range()")    
             if count_jump > 1:
                 set_range( channel, mode, prev_range )
                 _dbg( "Count jump qt 2, set uppper range: %s " % (prev_range), "set_good_range()" )

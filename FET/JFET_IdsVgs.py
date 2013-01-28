@@ -271,7 +271,7 @@ style = 0
 # 
 
 
-
+ag.start_output( 'all' )
 for Ubs in Ubs_RANGES:
     ag.source(CHANNEL_UBS,'v',Ubs)
     for Uds in Uds_RANGES:
@@ -296,6 +296,7 @@ for Ubs in Ubs_RANGES:
 
         time.sleep( 0.5 )
 
+ag.stop_output( 'all' )
 #fmeasure.close()
 #fdbg.close()
 if INCLUDE_GRAPHICS:
@@ -304,7 +305,7 @@ if INCLUDE_GRAPHICS:
     plt.ylabel('Ids, A')
     plt.grid(True)
     plt.legend(loc = 'lower right')
-    plt.savefig(out_dir+'out_iv.png')
+    plt.savefig(out_dir+'in_iv.png')
     plt.show()
 
 

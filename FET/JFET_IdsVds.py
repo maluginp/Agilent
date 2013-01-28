@@ -234,14 +234,14 @@ def execute():
     re_measure( MEASURE_COUNT )
 
 
-    if not ag.check_error( meas('Uds',2), meas('Uds_m',2), 0.03 ):
+    if not ag.check_error( meas('Uds',2), meas('Uds_m',2), 0.06 ):
         no_inc = True
     
-    if not ag.check_error( meas('Ugs',2), meas('Ugs_m',2), 0.03 ):
+    if not ag.check_error( meas('Ugs',2), meas('Ugs_m',2), 0.06 ):
         no_inc = True
     
-    if not ag.check_error( meas('Ubs',2), meas('Ubs_m',2), 0.03 ):
-            no_inc = True
+    if not ag.check_error( meas('Ubs',2), meas('Ubs_m',2), 0.06 ):
+        no_inc = True
         
     
 
@@ -271,7 +271,7 @@ style = 0
 # 
 
 
-
+ag.start_output('all')
 for Ubs in Ubs_RANGES:
     ag.source(CHANNEL_UBS,'v',Ubs)
     for Ugs in Ugs_RANGES:
@@ -296,7 +296,7 @@ for Ubs in Ubs_RANGES:
                 plt.plot( GRAPH_X, GRAPH_Y, get_style_plot(style,True),label=title )
 
         time.sleep( 0.5 )
-
+ag.stop_output('all')
 #fmeasure.close()
 #fdbg.close()
 if INCLUDE_GRAPHICS:
