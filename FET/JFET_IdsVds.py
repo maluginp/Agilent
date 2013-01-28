@@ -181,7 +181,6 @@ def re_measure(cycle=1):
 
     for i in xrange(cycle):
         # Impulse measure
-        ag.start_output('all')
         time.sleep( MEASURE_DELAY )
         _measures = deepcopy(ag.measure_all())
 
@@ -195,7 +194,7 @@ def re_measure(cycle=1):
 
         Temp  += _measures['temp']
 
-        ag.stop_output('all')
+        
 
     Measurements['Ids']   = Ids   / float(cycle)
     Measurements['Uds']   = Uds   / float(cycle)
