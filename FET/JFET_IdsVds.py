@@ -125,7 +125,7 @@ if os.path.isfile( out_dir + outfile):
 SAVE_DEBUG = config.getboolean('Device','save_debug')
 
 #fmeasure = open(out_dir + outfile, "w")
-#fdbg     = open(out_dir + "debug_" +outfile, "w")
+fdbg     = open(out_dir + outfile, "w")
 
 # Section: Measure
 MEASURE_DELAY      = config.getfloat('Measure','delay')          # Задержка перед каждым измерением (сек)
@@ -145,6 +145,12 @@ CHANNEL_UBS = config.getint( 'Agilent', 'channel_Ubs' )
 
 # Количество 
 COUNT_CURRENT_SATURATION = 0
+
+def _log(_log):
+    global fdbg
+
+    print _log
+    fdbg.write(str(_log)+"\n")
 
 def meas(name,rnd = -1):
     global Measurements
@@ -257,10 +263,10 @@ def execute():
         _smile = "o_O"
 
 
-    print "%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2e\t%.2f" % (_smile, 
+    buf = "%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2e\t%.2f" % (_smile, 
         meas('Uds'),meas('Uds_m'),meas('Ugs'),meas('Ugs_m'), \
         meas('Ubs'),meas('Ubs_m'),meas('Ids'),meas('Temp') )
-
+    _log(buf)
     return True
 
 if INCLUDE_GRAPHICS:
@@ -281,14 +287,14 @@ for Ubs in Ubs_RANGES:
         style += 1
 
         title = "Ugs=%.2f, Ubs=%.2f" % (Ugs,Ubs)
-        print title
-        print "  \tUds\tUds_m\tUgs\tUgs_m\tUbs\tUbs_m\tIds\t        Temp"
+        _log(title)
+        _log("  \tUds\tUds_m\tUgs\tUgs_m\tUbs\tUbs_m\tIds\t        Temp")
 
         for Uds in Uds_RANGES:
             ag.source(CHANNEL_UDS,'v',Uds)
 
             if not execute():
-                print "Error in execute"
+                _log("Error in execute")
 
 
         if INCLUDE_GRAPHICS:
@@ -297,6 +303,8 @@ for Ubs in Ubs_RANGES:
 
         time.sleep( 0.5 )
 ag.stop_output('all')
+
+fdbg.close()
 #fmeasure.close()
 #fdbg.close()
 if INCLUDE_GRAPHICS:
