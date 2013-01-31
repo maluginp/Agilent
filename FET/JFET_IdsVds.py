@@ -72,7 +72,7 @@ else:
     print "exited...."
     sys.exit(1)
 
-
+CHANNEL_TYPE = config.get('Device','channel')
 
 
 
@@ -253,8 +253,12 @@ def execute():
 
 
     if INCLUDE_GRAPHICS and no_inc == False:
-        GRAPH_X += [meas('Uds')]
-        GRAPH_Y += [meas('Ids')]
+        if CHANNEL_TYPE == "p":
+            GRAPH_X += [-meas('Uds')]
+            GRAPH_Y += [-meas('Ids')]
+        elif CHANNEL_TYPE == "n":
+            GRAPH_X += [meas('Uds')]
+            GRAPH_Y += [meas('Ids')]
 
     # Uds,Uds_m,Ugs,Ugs_m,Ubs,Ubs_m, Ids
 
@@ -299,7 +303,7 @@ for Ubs in Ubs_RANGES:
 
         if INCLUDE_GRAPHICS:
             if len(GRAPH_X) > 0:
-                plt.plot( GRAPH_X, GRAPH_Y, get_style_plot(style,True),label=title )
+                plt.plot( GRAPH_X, GRAPH_Y, get_style_plot(style,False),label=title )
 
         time.sleep( 0.5 )
 ag.stop_output('all')

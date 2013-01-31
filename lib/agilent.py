@@ -492,11 +492,18 @@ def get_source_range(ranges):
                 __range_end   = float(__range[1])
                 __range_step  = float(__range[2])
                 
-                _cycle = __range_start
-                src_range += [_cycle]
-                while _cycle < __range_end:
-                    _cycle += __range_step
+                if __range_start > __range_end:
+                    _cycle = __range_start
                     src_range += [_cycle]
+                    while _cycle > __range_end:
+                        _cycle -= __range_step
+                        src_range += [_cycle]
+                else:
+                    _cycle = __range_start
+                    src_range += [_cycle]
+                    while _cycle < __range_end:
+                        _cycle += __range_step
+                        src_range += [_cycle]
     
             else:
                 # const
