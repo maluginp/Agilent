@@ -126,9 +126,14 @@ INCLUDE_GRAPHICS   = config.getboolean('Graphic','enable')
 INTERPOLATED       = config.getboolean('Graphic','spline')
 
 # TODO: move to config
-
-CHANNEL_UBE = config.getint( 'Agilent', 'channel_Ube' )
-CHANNEL_UCE = config.getint( 'Agilent', 'channel_Uce' )
+if config.has_option( 'Agilent', 'channel_Ube' ):
+    CHANNEL_UBE = config.getint( 'Agilent', 'channel_Ube' )
+else:
+    CHANNEL_UBE = 1
+if config.has_option( 'Agilent', 'channel_Uce' ):
+    CHANNEL_UCE = config.getint( 'Agilent', 'channel_Uce' )
+else:
+    CHANNEL_UCE = 2
 
 
 # Количество 
@@ -137,9 +142,9 @@ COUNT_CURRENT_SATURATION = 0
 def _write_measure(init=False):
     global fmeasure
     if init:
-        fmeasure.write("@COLS:Ube,Ib,Uce,Ic")
+        fmeasure.write("@COLS:Ube,Ib,Uce,Ic\n")
     else:
-        fmeasure.write( "%.2f\t%.2e\t%.2f\t%.2e" % (meas("Ube",2),meas("Ib"),meas("Uce",2),mease("Ic")) )
+        fmeasure.write( "%.2f\t%.2e\t%.2f\t%.2e\n" % (meas("Ube",2),meas("Ib"),meas("Uce",2),meas("Ic")) )
 
 def _log(_log):
     global fdbg
@@ -183,16 +188,14 @@ def re_measure(cycle=1):
     for i in xrange(cycle):
         # Impulse measure
         time.sleep( MEASURE_DELAY )
-        _measures = deepcopy(ag.measure_all())
 
-        Ib    += _measures['ch1']['curr']['sour']
-        Ib_m  += _measures['ch1']['curr']['meas'] 
-        Ube   += _measures['ch1']['volt']['meas']
-        Ic    += _measures['ch2']['curr']['meas'] 
-        Uce   += _measures['ch2']['volt']['sour']
-        Uce_m += _measures['ch2']['volt']['meas']
-
-        Temp  += _measures['temp']
+        Ib    += ag.source_value(CHANNEL_UBE,'c')
+        Ib_m  += ag.measure(CHANNEL_UBE,'c')
+        Ube   += ag.measure(CHANNEL_UBE,'v')
+        Ic    += ag.measure(CHANNEL_UCE,'c')
+        Uce   += ag.source_value(CHANNEL_UCE,'v')
+        Uce_m += ag.measure(CHANNEL_UCE,'v')
+        Temp  += ag.temperature()
 
     Measurements['Ib']    = Ib    / float(cycle)
     Measurements['Ib_m']  = Ib_m  / float(cycle)
@@ -200,7 +203,7 @@ def re_measure(cycle=1):
     Measurements['Ic']    = Ic    / float(cycle)
     Measurements['Uce']   = Uce   / float(cycle)
     Measurements['Uce_m'] = Uce_m / float(cycle)
-
+    Measurements['Temp']  = Temp  / float(cycle)
     
 def execute():
     global GRAPH_X,GRAPH_Y,COUNT_CURRENT_SATURATION,INCLUDE_GRAPHICS
@@ -211,33 +214,29 @@ def execute():
     #    ag.up_range(  )
     #    time.sleep( MEASURE_DELAY )
     #    re_measure()
-
-    if not ag.set_good_range( CHANNEL_UBE, 'c' ):
+    if not ag.set_good_range( CHANNEL_UBE, 'v' ):
         print "Can't set good range for CH Ube"
     if not ag.set_good_range( CHANNEL_UCE, 'c' ):
         print "Can't set good range for CH Uce"    
 
-    if round(meas('Ic'),3) == 0.120:
-        if COUNT_CURRENT_SATURATION > 2:
-            return False
-        else:
-            COUNT_CURRENT_SATURATION += 1
+    # if round(meas('Ic'),3) == 0.120:
+    #     if COUNT_CURRENT_SATURATION > 2:
+    #         return False
+    #     else:
+    #         COUNT_CURRENT_SATURATION += 1
     
-    if round(meas('Ib'),3) == 0.120:
-        if COUNT_CURRENT_SATURATION > 2:
-            return False
-        else:
-            COUNT_CURRENT_SATURATION += 1        
+    # if round(meas('Ib'),3) == 0.120:
+    #     if COUNT_CURRENT_SATURATION > 2:
+    #         return False
+    #     else:
+    #         COUNT_CURRENT_SATURATION += 1        
 
     re_measure( MEASURE_COUNT )
-
-
-    if not ag.check_error( meas('Ube',2), meas('Ube_m',2), 0.06 ):
-        no_inc = True
     
     if not ag.check_error( meas('Uce',2), meas('Uce_m',2), 0.06 ):
         no_inc = True
-        
+    if not ag.check_error( meas('Ib'), meas('Ib_m'), meas('Ib')*0.1 ):
+        no_inc = True    
     
 
 
@@ -260,7 +259,9 @@ def execute():
         meas('Uce_m'),meas('Ic'),meas('Temp') )
     _log(buf)
 
-    _write_measure()
+    if no_inc == False:
+        _write_measure()
+    
     
     return True
 
@@ -275,22 +276,36 @@ _write_measure(True)
 ag.start_output('all')
 for Ib in Ib_RANGES:
     ag.source(CHANNEL_UBE,'c',Ib)
+    GRAPH_Y = []
+    GRAPH_X = []
+    style += 1
+
+    title = "Ib=%.2e" % (Ib)
+    _log(title)
+    _log("  \tUbe\tIb        \tIb_m      \tUce\tUce_m\tIc\t        Temp")
+    
     for Uce in Uce_RANGES:
         ag.source(CHANNEL_UCE,'v',Uce)
-        GRAPH_Y = []
-        GRAPH_X = []
-        style += 1
-
-        title = "Ib=%.2e" % (Ib)
-        _log(title)
-        _log("  \tUbe\tIb        \tIb_m      \tUce\tUce_m\tIc\t        Temp")
+        
         if not execute():
             _log("Error in execute")
 
 
-        if INCLUDE_GRAPHICS:
-            if len(GRAPH_X) > 0:
-                plt.plot( GRAPH_X, GRAPH_Y, get_style_plot(style,False),label=title )
+    if INCLUDE_GRAPHICS:
+        if len(GRAPH_X) > 0:
+            _GRAPH_X = deepcopy(GRAPH_X)
+            _GRAPH_X.sort()
+            _GRAPH_Y = []
+            for x in _GRAPH_X:
+                i=0
+                for _x in GRAPH_X:
+                    if x == _x:
+                        _GRAPH_Y += [ GRAPH_Y[i] ]
+                        break
+                    i+=1
+
+            plt.plot( _GRAPH_X, _GRAPH_Y, get_style_plot(style,False),label=title )
+            
 
     time.sleep( 0.5 )
 ag.stop_output('all')

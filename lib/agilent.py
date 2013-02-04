@@ -514,10 +514,12 @@ def get_source_range(ranges):
         print "ValueError"
     except:
         print "Fatal error"
+
     else:
         return src_range   
 
-    return []
+    stop_output('all')
+    exit(1) 
 
 def is_correct_channel(channel):
     global MAX_CHANNEL
